@@ -2,10 +2,10 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"time"
 
+	"auth-crud/loggers"
 	"auth-crud/models"
 
 	"gorm.io/driver/postgres"
@@ -33,8 +33,8 @@ func ConnectDB() error {
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	log.Println("Connected to database successfully")
-	log.Println("Running DB migrations...")
+	loggers.Info("Connected to database successfully")
+	loggers.Info("Running DB migrations...")
 	DB.AutoMigrate(&models.User{}, &models.Video{}, &models.Category{})
 
 	return nil

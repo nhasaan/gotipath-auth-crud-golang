@@ -1,11 +1,11 @@
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"auth-crud/config"
 	"auth-crud/handlers"
+	"auth-crud/loggers"
 	"auth-crud/middlewares"
 
 	"github.com/joho/godotenv"
@@ -16,11 +16,12 @@ func main() {
 
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
-		log.Println("Error loading .env file")
+		loggers.Info(".env not found, relying on environment variables")
 	}
 
 	if err := config.ConnectDB(); err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		loggers.Error("Failed to connect to database:", err)
+		return
 	}
 
 	mux := http.NewServeMux()
@@ -39,5 +40,6 @@ func main() {
 	mux.HandleFunc("/api/admin/v1/uploads", middlewares.RequireAdmin(handlers.UploadFile))
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("/uploads"))))
 
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	loggers.Info("HTTP server listening on :8080")
+	_ = http.ListenAndServe(":8080", mux)
 }
