@@ -2,11 +2,13 @@ package config
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"time"
 
 	"auth-crud/loggers"
 	"auth-crud/models"
+	"auth-crud/utils"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -37,7 +39,49 @@ func ConnectDB() error {
 	loggers.Info("Running DB migrations...")
 	DB.AutoMigrate(&models.User{}, &models.Video{}, &models.Category{})
 
+	if os.Getenv("SEED_DATA") == "true" {
+		seedDatabase()
+	}
+
 	return nil
+}
+
+func seedDatabase() {
+	rand.Seed(time.Now().UnixNano())
+	// Categories
+	var count int64
+	DB.Model(&models.Category{}).Count(&count)
+	if count == 0 {
+		for i := 1; i <= 30; i++ {
+			DB.Create(&models.Category{Name: fmt.Sprintf("Category %d", i)})
+		}
+	}
+	// Users
+	DB.Model(&models.User{}).Count(&count)
+	if count == 0 {
+		for i := 1; i <= 30; i++ {
+			email := fmt.Sprintf("user%02d@example.com", i)
+			pwd, _ := utils.HashPassword("Passw0rd!")
+			DB.Create(&models.User{Email: email, Password: pwd, IsAdmin: i == 1})
+		}
+	}
+	// Videos
+	DB.Model(&models.Video{}).Count(&count)
+	if count == 0 {
+		var cats []models.Category
+		DB.Find(&cats)
+		for i := 1; i <= 30; i++ {
+			c := cats[rand.Intn(len(cats))]
+			DB.Create(&models.Video{
+				Title:         fmt.Sprintf("Video %02d", i),
+				Duration:      fmt.Sprintf("%dm", 5+(i%15)),
+				URL:           fmt.Sprintf("https://example.com/video%02d.mp4", i),
+				ThumbnailPath: "/uploads/sample.png",
+				CategoryID:    c.ID,
+			})
+		}
+	}
+	loggers.Info("Seeding complete")
 }
 
 func CloseDB() error {

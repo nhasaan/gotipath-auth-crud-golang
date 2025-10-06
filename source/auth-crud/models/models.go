@@ -17,6 +17,7 @@ type Video struct {
 	URL           string    `gorm:"not null"`
 	ThumbnailPath string    `gorm:"not null"`
 	CategoryID    uint      `gorm:"not null"`
+	Category      Category  `json:"category"`
 	CreatedAt     time.Time `gorm:"autoCreateTime"`
 	UpdatedAt     time.Time `gorm:"autoUpdateTime"`
 }

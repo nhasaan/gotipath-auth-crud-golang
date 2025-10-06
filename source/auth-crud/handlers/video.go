@@ -13,7 +13,7 @@ func GetVideos(w http.ResponseWriter, r *http.Request) {
 	limit, cursor, sortBy, order := utils.ParsePagination(r)
 	var videos []models.Video
 
-	q := config.DB.Model(&models.Video{})
+	q := config.DB.Model(&models.Video{}).Preload("Category")
 	if cursor != "" {
 		if id, err := strconv.Atoi(cursor); err == nil {
 			if order == "asc" {
@@ -58,7 +58,7 @@ func GetVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var video models.Video
-	if err := config.DB.First(&video, id).Error; err != nil {
+	if err := config.DB.Preload("Category").First(&video, id).Error; err != nil {
 		utils.JSONError(w, r, http.StatusNotFound, "Video not found", "not_found", "")
 		return
 	}
