@@ -35,5 +35,9 @@ func main() {
 	mux.HandleFunc("/api/v1/categories/{id}", handlers.GetCategory)
 	mux.HandleFunc("/api/admin/v1/categories", middlewares.RequireAdmin(handlers.CreateCategory))
 
+	// Uploads
+	mux.HandleFunc("/api/admin/v1/uploads", middlewares.RequireAdmin(handlers.UploadFile))
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("/uploads"))))
+
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }

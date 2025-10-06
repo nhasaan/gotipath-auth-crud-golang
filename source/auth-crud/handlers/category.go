@@ -18,8 +18,9 @@ func GetCategories(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetCategory(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
 	var category models.Category
-	if err := config.DB.Where("id = ?", r.URL.Query().Get("id")).First(&category).Error; err != nil {
+	if err := config.DB.Where("id = ?", id).First(&category).Error; err != nil {
 		utils.Error(w, http.StatusNotFound, "Category not found")
 		return
 	}
