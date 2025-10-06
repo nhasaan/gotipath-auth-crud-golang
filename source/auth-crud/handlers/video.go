@@ -10,32 +10,59 @@ import (
 )
 
 func GetVideos(w http.ResponseWriter, r *http.Request) {
+	limit, cursor, sortBy, order := utils.ParsePagination(r)
 	var videos []models.Video
-	if err := config.DB.Find(&videos).Error; err != nil {
-		utils.Error(w, http.StatusInternalServerError, "Failed to get videos")
+
+	q := config.DB.Model(&models.Video{})
+	if cursor != "" {
+		if id, err := strconv.Atoi(cursor); err == nil {
+			if order == "asc" {
+				q = q.Where("id > ?", id)
+			} else {
+				q = q.Where("id < ?", id)
+			}
+		}
+	}
+	if sortBy == "created_at" {
+		q = q.Order("created_at " + order)
+	} else {
+		q = q.Order("id " + order)
+	}
+	if err := q.Limit(limit).Find(&videos).Error; err != nil {
+		utils.JSONError(w, r, http.StatusInternalServerError, "Failed to get videos", "db_query_failed", err.Error())
 		return
 	}
-	utils.JSON(w, http.StatusOK, videos)
+
+	nextCursor := ""
+	if len(videos) > 0 {
+		last := videos[len(videos)-1]
+		nextCursor = utils.BuildNextCursor(len(videos), limit, last.ID)
+	}
+
+	utils.JSONSuccess(w, r, "Successfully retrieved the videos", map[string]interface{}{
+		"items":       videos,
+		"next_cursor": nextCursor,
+	})
 }
 
 func GetVideo(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	if idStr == "" {
-		utils.Error(w, http.StatusBadRequest, "Missing video id")
+		utils.JSONError(w, r, http.StatusBadRequest, "Missing video id", "validation_error", "")
 		return
 	}
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id <= 0 {
-		utils.Error(w, http.StatusBadRequest, "Invalid video id")
+		utils.JSONError(w, r, http.StatusBadRequest, "Invalid video id", "validation_error", "")
 		return
 	}
 
 	var video models.Video
 	if err := config.DB.First(&video, id).Error; err != nil {
-		utils.Error(w, http.StatusNotFound, "Video not found")
+		utils.JSONError(w, r, http.StatusNotFound, "Video not found", "not_found", "")
 		return
 	}
-	utils.JSON(w, http.StatusOK, video)
+	utils.JSONSuccess(w, r, "Successfully retrieved the video", video)
 }
 
 // VideoInput represents the payload for creating/updating a video.
@@ -51,19 +78,19 @@ type VideoInput struct {
 func CreateVideo(w http.ResponseWriter, r *http.Request) {
 	var input VideoInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		utils.Error(w, http.StatusBadRequest, "Invalid request body")
+		utils.JSONError(w, r, http.StatusBadRequest, "Invalid request body", "invalid_request", err.Error())
 		return
 	}
 
 	if input.Title == "" || input.Duration == "" || input.URL == "" || input.ThumbnailPath == "" || input.CategoryID == 0 {
-		utils.Error(w, http.StatusBadRequest, "Missing required fields")
+		utils.JSONError(w, r, http.StatusBadRequest, "Missing required fields", "validation_error", "")
 		return
 	}
 
 	// Ensure category exists
 	var category models.Category
 	if err := config.DB.First(&category, input.CategoryID).Error; err != nil {
-		utils.Error(w, http.StatusBadRequest, "Invalid categoryId")
+		utils.JSONError(w, r, http.StatusBadRequest, "Invalid categoryId", "validation_error", "")
 		return
 	}
 
@@ -76,33 +103,33 @@ func CreateVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := config.DB.Create(&video).Error; err != nil {
-		utils.Error(w, http.StatusInternalServerError, "Failed to create video")
+		utils.JSONError(w, r, http.StatusInternalServerError, "Failed to create video", "db_create_failed", err.Error())
 		return
 	}
-	utils.JSON(w, http.StatusCreated, video)
+	utils.JSONCreated(w, r, "Video created successfully", video)
 }
 
 func UpdateVideo(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	if idStr == "" {
-		utils.Error(w, http.StatusBadRequest, "Missing video id")
+		utils.JSONError(w, r, http.StatusBadRequest, "Missing video id", "validation_error", "")
 		return
 	}
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id <= 0 {
-		utils.Error(w, http.StatusBadRequest, "Invalid video id")
+		utils.JSONError(w, r, http.StatusBadRequest, "Invalid video id", "validation_error", "")
 		return
 	}
 
 	var existing models.Video
 	if err := config.DB.First(&existing, id).Error; err != nil {
-		utils.Error(w, http.StatusNotFound, "Video not found")
+		utils.JSONError(w, r, http.StatusNotFound, "Video not found", "not_found", "")
 		return
 	}
 
 	var input VideoInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		utils.Error(w, http.StatusBadRequest, "Invalid request body")
+		utils.JSONError(w, r, http.StatusBadRequest, "Invalid request body", "invalid_request", err.Error())
 		return
 	}
 
@@ -110,7 +137,7 @@ func UpdateVideo(w http.ResponseWriter, r *http.Request) {
 	if input.CategoryID != 0 {
 		var category models.Category
 		if err := config.DB.First(&category, input.CategoryID).Error; err != nil {
-			utils.Error(w, http.StatusBadRequest, "Invalid categoryId")
+			utils.JSONError(w, r, http.StatusBadRequest, "Invalid categoryId", "validation_error", "")
 			return
 		}
 		existing.CategoryID = input.CategoryID
@@ -130,8 +157,8 @@ func UpdateVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := config.DB.Save(&existing).Error; err != nil {
-		utils.Error(w, http.StatusInternalServerError, "Failed to update video")
+		utils.JSONError(w, r, http.StatusInternalServerError, "Failed to update video", "db_update_failed", err.Error())
 		return
 	}
-	utils.JSON(w, http.StatusOK, existing)
+	utils.JSONSuccess(w, r, "Video updated successfully", existing)
 }
