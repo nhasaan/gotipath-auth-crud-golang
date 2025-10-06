@@ -1,0 +1,11 @@
+services:
+  auth-crud:
+    build:
+      context: ../
+      dockerfile: orchestrate/auth-crud/Dockerfile
+    ports:
+      - 8080:8080
+    env_file:
+      - ../orchestrate/auth-crud/auth-crud.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

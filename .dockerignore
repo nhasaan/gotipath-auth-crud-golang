@@ -1,0 +1,33 @@
+# Exclude VCS
+.git
+
+# OS
+.DS_Store
+
+# Editor/IDE
+.vscode
+.idea
+*.swp
+
+# Build artifacts
+bin
+build
+out
+/dist
+
+# Dependencies
+vendor
+**/node_modules
+
+# Env and secrets
+.env
+*.env
+orchestrate/auth-crud/auth-crud.env
+
+# Test and logs
+*.log
+logs
+coverage
+
+# Project docs not to include
+Golang_Developer_Interview_Task.docx.pdf

@@ -1,0 +1,29 @@
+# OS
+.DS_Store
+
+# Go build
+bin/
+dist/
+*.out
+
+# Env files
+.env
+*.env
+orchestrate/auth-crud/auth-crud.env
+
+# Logs
+*.log
+logs/
+
+# IDE/editor
+.idea/
+.vscode/
+*.swp
+
+# Dependencies/cache
+vendor/
+**/node_modules/
+
+# Project docs not to commit
+Golang_Developer_Interview_Task.docx.pdf
+
