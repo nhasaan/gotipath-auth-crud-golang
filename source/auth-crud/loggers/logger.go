@@ -2,6 +2,7 @@ package loggers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -61,30 +62,18 @@ func Log(fields map[string]interface{}) {
 	b, err := json.Marshal(fields)
 	if err != nil {
 		// fallback
-		L().Printf(`{"ts":"%s","level":"error","msg":"failed to marshal log","err":"%v"}\n`, time.Now().UTC().Format(time.RFC3339Nano), err)
+		L().Print(fmt.Sprintf(`{"ts":"%s","level":"error","msg":"failed to marshal log","err":"%v"}`, time.Now().UTC().Format(time.RFC3339Nano), err))
 		return
 	}
-	L().Write(append(b, '\n'))
+	L().Print(string(b))
 }
 
 // Info logs a message at info level in JSON form.
 func Info(v ...any) {
-	Log(map[string]interface{}{"level": "info", "msg": sprintAny(v...)})
+	Log(map[string]interface{}{"level": "info", "msg": fmt.Sprint(v...)})
 }
 
 // Error logs an error message in JSON form.
 func Error(v ...any) {
-	Log(map[string]interface{}{"level": "error", "msg": sprintAny(v...)})
-}
-
-func sprintAny(v ...any) string {
-	// simple join via Sprintln then trim newline
-	msg := ""
-	if len(v) > 0 {
-		msg = log.New(io.Discard, "", 0).Sprintln(v...)
-		if len(msg) > 0 && msg[len(msg)-1] == '\n' {
-			msg = msg[:len(msg)-1]
-		}
-	}
-	return msg
+	Log(map[string]interface{}{"level": "error", "msg": fmt.Sprint(v...)})
 }
