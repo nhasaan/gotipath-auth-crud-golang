@@ -14,9 +14,7 @@ func GetCategories(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusInternalServerError, "Failed to get categories")
 		return
 	}
-	utils.Success(w, http.StatusOK, "Categories fetched successfully")
 	utils.JSON(w, http.StatusOK, categories)
-	return
 }
 
 func GetCategory(w http.ResponseWriter, r *http.Request) {
@@ -25,18 +23,31 @@ func GetCategory(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusNotFound, "Category not found")
 		return
 	}
-	utils.Success(w, http.StatusOK, "Category fetched successfully")
 	utils.JSON(w, http.StatusOK, category)
-	return
 }
 
 func CreateCategory(w http.ResponseWriter, r *http.Request) {
-	var category models.Category
-	if err := json.NewDecoder(r.Body).Decode(&category); err != nil {
+	var input models.Category
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		utils.Error(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	utils.Success(w, http.StatusCreated, "Category created successfully")
+	if input.Name == "" {
+		utils.Error(w, http.StatusBadRequest, "Name is required")
+		return
+	}
+
+	// ensure unique name
+	var exists models.Category
+	if err := config.DB.Where("name = ?", input.Name).First(&exists).Error; err == nil {
+		utils.Error(w, http.StatusBadRequest, "Category already exists")
+		return
+	}
+
+	category := models.Category{Name: input.Name}
+	if err := config.DB.Create(&category).Error; err != nil {
+		utils.Error(w, http.StatusInternalServerError, "Failed to create category")
+		return
+	}
 	utils.JSON(w, http.StatusCreated, category)
-	return
 }

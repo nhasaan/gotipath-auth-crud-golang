@@ -26,9 +26,28 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	input.Email = strings.TrimSpace(strings.ToLower(input.Email))
+	if input.Email == "" || input.Password == "" {
+		utils.Error(w, http.StatusBadRequest, "Email and password are required")
+		return
+	}
+
+	// check uniqueness
+	var existing models.User
+	if err := config.DB.Where("email = ?", input.Email).First(&existing).Error; err == nil {
+		utils.Error(w, http.StatusBadRequest, "Email already in use")
+		return
+	}
+
+	hashed, err := utils.HashPassword(input.Password)
+	if err != nil {
+		utils.Error(w, http.StatusInternalServerError, "Failed to process password")
+		return
+	}
+
 	user := models.User{
 		Email:    input.Email,
-		Password: input.Password,
+		Password: hashed,
 	}
 
 	if err := config.DB.Create(&user).Error; err != nil {
@@ -36,8 +55,10 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.Success(w, http.StatusCreated, "User created successfully")
-	return
+	utils.JSON(w, http.StatusCreated, map[string]interface{}{
+		"id":    user.ID,
+		"email": user.Email,
+	})
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
@@ -47,18 +68,20 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := models.User{
-		Email:    input.Email,
-		Password: input.Password,
+	email := strings.TrimSpace(strings.ToLower(input.Email))
+	if email == "" || input.Password == "" {
+		utils.Error(w, http.StatusBadRequest, "Email and password are required")
+		return
 	}
 
-	if err := config.DB.Where("email = ?", strings.ToLower(input.Email)).First(&user).Error; err != nil {
+	var user models.User
+	if err := config.DB.Where("email = ?", email).First(&user).Error; err != nil {
 		utils.Error(w, http.StatusNotFound, "User not found")
 		return
 	}
 
 	if err := utils.VerifyPassword(input.Password, user.Password); err != nil {
-		utils.Error(w, http.StatusUnauthorized, "Invalid password")
+		utils.Error(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
 
@@ -68,7 +91,5 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.Success(w, http.StatusOK, "User logged in successfully")
 	utils.JSON(w, http.StatusOK, map[string]string{"token": token})
-	return
 }
