@@ -26,7 +26,7 @@ func (rr *responseRecorder) Write(b []byte) (int, error) {
 	return rr.ResponseWriter.Write(b)
 }
 
-// Logging wraps handlers to log request/response with headers/body and errors.
+// Logging wraps handlers to log request/response with headers/body and errors as JSON.
 func Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -44,15 +44,20 @@ func Logging(next http.Handler) http.Handler {
 		next.ServeHTTP(recorder, r)
 
 		dur := time.Since(start)
-		loggers.Info(map[string]interface{}{
-			"request_id": reqID,
-			"method":     r.Method,
-			"path":       r.URL.Path,
-			"status":     recorder.status,
+		fields := map[string]interface{}{
+			"request_id":  reqID,
+			"level":       "info",
+			"method":      r.Method,
+			"path":        r.URL.Path,
+			"status":      recorder.status,
 			"duration_ms": dur.Milliseconds(),
 			"req_headers": r.Header,
 			"req_body":    string(reqBody),
 			"resp_body":   recorder.buf.String(),
-		})
+		}
+		if recorder.status >= 400 {
+			fields["level"] = "error"
+		}
+		loggers.Log(fields)
 	})
 }

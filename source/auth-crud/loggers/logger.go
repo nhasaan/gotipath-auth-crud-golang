@@ -1,6 +1,7 @@
 package loggers
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"os"
@@ -14,14 +15,13 @@ import (
 // LOG_FILE_PATH: when LOG_OUTPUT=file, path to log file (default: /app/logs/app.log)
 
 var (
-	logger     *log.Logger
-	initOnce   sync.Once
-	logOutputs = map[string]bool{"stdout": true, "file": true}
+	logger   *log.Logger
+	initOnce sync.Once
 )
 
 func initLogger() {
 	outputMode := os.Getenv("LOG_OUTPUT")
-	if !logOutputs[outputMode] {
+	if outputMode != "file" {
 		outputMode = "stdout"
 	}
 
@@ -36,12 +36,11 @@ func initLogger() {
 		if err == nil {
 			writer = f
 		} else {
-			// Fallback to stdout if we cannot open the file
 			writer = os.Stdout
 		}
 	}
 
-	logger = log.New(writer, "", log.LstdFlags|log.LUTC)
+	logger = log.New(writer, "", 0)
 }
 
 // L returns the initialized *log.Logger singleton.
@@ -50,20 +49,42 @@ func L() *log.Logger {
 	return logger
 }
 
-// Info logs an informational message.
+// Log writes a single line JSON log with provided fields.
+func Log(fields map[string]interface{}) {
+	if fields == nil {
+		fields = map[string]interface{}{}
+	}
+	// ensure timestamp exists
+	if _, ok := fields["ts"]; !ok {
+		fields["ts"] = time.Now().UTC().Format(time.RFC3339Nano)
+	}
+	b, err := json.Marshal(fields)
+	if err != nil {
+		// fallback
+		L().Printf(`{"ts":"%s","level":"error","msg":"failed to marshal log","err":"%v"}\n`, time.Now().UTC().Format(time.RFC3339Nano), err)
+		return
+	}
+	L().Write(append(b, '\n'))
+}
+
+// Info logs a message at info level in JSON form.
 func Info(v ...any) {
-	L().Println(v...)
+	Log(map[string]interface{}{"level": "info", "msg": sprintAny(v...)})
 }
 
-// Error logs an error message with a consistent prefix.
+// Error logs an error message in JSON form.
 func Error(v ...any) {
-	L().Println(append([]any{"ERROR:"}, v...)...)
+	Log(map[string]interface{}{"level": "error", "msg": sprintAny(v...)})
 }
 
-// WithTime allows logging with a custom timestamp (UTC) when needed.
-func WithTime(t time.Time, v ...any) {
-	// temporarily create a logger with the provided timestamp prefix
-	prefix := t.UTC().Format("2006/01/02 15:04:05 ")
-	l := log.New(L().Writer(), prefix, 0)
-	l.Println(v...)
+func sprintAny(v ...any) string {
+	// simple join via Sprintln then trim newline
+	msg := ""
+	if len(v) > 0 {
+		msg = log.New(io.Discard, "", 0).Sprintln(v...)
+		if len(msg) > 0 && msg[len(msg)-1] == '\n' {
+			msg = msg[:len(msg)-1]
+		}
+	}
+	return msg
 }
