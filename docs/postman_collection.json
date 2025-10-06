@@ -1,0 +1,82 @@
+{
+  "info": {
+    "name": "Go Auth CRUD",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "url": {"raw": "http://localhost:8080/api/v1/auth/register", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api","v1","auth","register"]},
+        "body": {"mode": "raw", "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Passw0rd!\"\n}"}
+      }
+    },
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "url": {"raw": "http://localhost:8080/api/v1/auth/login", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api","v1","auth","login"]},
+        "body": {"mode": "raw", "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Passw0rd!\"\n}"}
+      }
+    },
+    {
+      "name": "Categories - List",
+      "request": {
+        "method": "GET",
+        "url": {"raw": "http://localhost:8080/api/v1/categories?limit=10", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api","v1","categories"], "query": [{"key":"limit","value":"10"}]}
+      }
+    },
+    {
+      "name": "Categories - Create (admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "url": {"raw": "http://localhost:8080/api/admin/v1/categories", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api","admin","v1","categories"]},
+        "body": {"mode": "raw", "raw": "{\n  \"name\": \"Tutorials\"\n}"}
+      }
+    },
+    {
+      "name": "Videos - List",
+      "request": {
+        "method": "GET",
+        "url": {"raw": "http://localhost:8080/api/v1/videos?limit=10", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api","v1","videos"], "query": [{"key":"limit","value":"10"}]}
+      }
+    },
+    {
+      "name": "Videos - Create (admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "url": {"raw": "http://localhost:8080/api/admin/v1/videos", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api","admin","v1","videos"]},
+        "body": {"mode": "raw", "raw": "{\n  \"title\": \"Intro\",\n  \"duration\": \"10m\",\n  \"url\": \"https://example.com/video.mp4\",\n  \"thumbnailPath\": \"/uploads/sample.png\",\n  \"categoryId\": 1\n}"}
+      }
+    },
+    {
+      "name": "Uploads - Upload (admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token}}"}
+        ],
+        "url": {"raw": "http://localhost:8080/api/admin/v1/uploads", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api","admin","v1","uploads"]},
+        "body": {"mode": "formdata", "formdata": [{"key":"file","type":"file","src":"/path/to/file.png"}]}
+      }
+    }
+  ],
+  "variable": [
+    {"key":"token","value":""}
+  ]
+}
