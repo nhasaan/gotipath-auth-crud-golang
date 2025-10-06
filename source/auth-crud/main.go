@@ -6,6 +6,7 @@ import (
 
 	"auth-crud/config"
 	"auth-crud/handlers"
+	"auth-crud/middlewares"
 
 	"github.com/joho/godotenv"
 )
@@ -27,12 +28,12 @@ func main() {
 	mux.HandleFunc("/api/v1/auth/login", handlers.Login)
 	mux.HandleFunc("/api/v1/videos", handlers.GetVideos)
 	mux.HandleFunc("/api/v1/videos/{id}", handlers.GetVideo)
-	mux.HandleFunc("/api/admin/v1/videos", handlers.CreateVideo)
-	mux.HandleFunc("/api/admin/v1/videos/{id}", handlers.UpdateVideo)
+	mux.HandleFunc("/api/admin/v1/videos", middlewares.RequireAdmin(handlers.CreateVideo))
+	mux.HandleFunc("/api/admin/v1/videos/{id}", middlewares.RequireAdmin(handlers.UpdateVideo))
 
 	mux.HandleFunc("/api/v1/categories", handlers.GetCategories)
 	mux.HandleFunc("/api/v1/categories/{id}", handlers.GetCategory)
-	mux.HandleFunc("/api/admin/v1/categories", handlers.CreateCategory)
+	mux.HandleFunc("/api/admin/v1/categories", middlewares.RequireAdmin(handlers.CreateCategory))
 
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }
