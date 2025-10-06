@@ -41,5 +41,5 @@ func main() {
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("/uploads"))))
 
 	loggers.Info("HTTP server listening on :8080")
-	_ = http.ListenAndServe(":8080", mux)
+	_ = http.ListenAndServe(":8080", middlewares.Logging(mux))
 }
